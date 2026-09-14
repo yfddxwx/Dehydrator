@@ -72,8 +72,8 @@ During daily brainstorming, technical deliberations, and chaotic meetings, our t
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/thought-dehydrator.git
-cd thought-dehydrator
+git clone https://github.com/yfddxwx/Dehydrator.git
+cd Dehydrator
 
 # 2. Install dependencies
 npm install
