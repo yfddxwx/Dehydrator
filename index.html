@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>思绪脱水与重构器 (Thought Dehydrator.app) - NeXTSTEP Edition</title>
+    <meta name="description" content="基于 90 年代 NeXTSTEP 美学的思绪脱水与重构器。将冗余长文极度脱水为核心实体、潜在矛盾与下一步动作，原生 Web Audio 合成音效。" />
+    <script type="module" crossorigin src="/Dehydrator/assets/index-CtXxTURQ.js"></script>
+    <link rel="stylesheet" crossorigin href="/Dehydrator/assets/index-6BltkuLS.css">
+  </head>
+  <body>
+    <!-- 主工作区窗口 -->
+    <div class="app-container">
+      <main class="next-window" id="mainWindow">
+        <!-- NeXTSTEP 经典黑底标题栏 -->
+        <header class="next-titlebar">
+          <div class="next-title-left">
+            <button class="next-win-btn" id="btnWinClose" title="关闭窗口" aria-label="关闭窗口">✕</button>
+            <button class="next-win-btn" id="btnWinMinimize" title="折叠/最小化" aria-label="最小化">▼</button>
+            <div class="next-title-text">
+              <span class="cube-icon"></span>
+              Thought Dehydrator.app
+            </div>
+          </div>
+          <div class="next-title-actions">
+            <button class="next-mini-btn" id="btnToggleSound" title="切换音效">🔊 音效: 开</button>
+            <button class="next-mini-btn" id="btnOpenSettings" title="配置 API 与模型">⚙ API 配置</button>
+            <button class="next-mini-btn" id="btnOpenDrawer" title="查看本地历史抽屉">📁 历史抽屉 (<span id="drawerCount">0</span>)</button>
+          </div>
+        </header>
+
+        <!-- 窗口主内容区 -->
+        <div class="next-window-content" id="windowBody">
+          <!-- 顶部状态栏与样本装载 -->
+          <div class="system-status-bar">
+            <div class="status-indicator-group">
+              <div class="status-badge">
+                <span class="status-led idle" id="statusLed"></span>
+                <span id="currentEngineLabel">引擎: 本地启发式规则</span>
+              </div>
+            </div>
+            <div class="sample-pills">
+              <span>预设样本文本:</span>
+              <button class="sample-pill-btn" data-sample="0">跨团队卡点</button>
+              <button class="sample-pill-btn" data-sample="1">架构抉择</button>
+              <button class="sample-pill-btn" data-sample="2">精力分散</button>
+              <button class="sample-pill-btn" id="btnClearInput">清空</button>
+            </div>
+          </div>
+
+          <!-- 文本输入区 -->
+          <section class="input-section">
+            <div class="section-label-bar">
+              <span>RAW_STREAM [待脱水思绪/长文输入]</span>
+              <span class="text-count-badge">当前字数: <strong id="charCount">0</strong> 字</span>
+            </div>
+            <textarea
+              id="rawTextInput"
+              class="thought-textarea"
+              placeholder="在此粘贴或敲入一段混乱的长篇思考、会议纪要、随手记或情绪拉扯的长文本...&#10;点击下方【脱水计算】，系统将剔除一切口水话与修饰，提炼出核心骨架。"
+              spellcheck="false"
+            ></textarea>
+          </section>
+
+          <!-- 命令操作栏与点阵微型进度指示条 -->
+          <section class="action-command-bar">
+            <div class="action-buttons-group">
+              <button class="next-button primary" id="btnDehydrate">
+                <span>▶</span> 脱水计算 (Dehydrate)
+              </button>
+              <button class="next-button" id="btnResetAll">
+                <span>↺</span> 重置
+              </button>
+            </div>
+
+            <!-- 点阵式微型处理进度指示条 -->
+            <div class="dot-matrix-progress-container">
+              <span class="matrix-label" id="progressStatusLabel">就绪 (READY)</span>
+              <div class="matrix-display" id="dotMatrixDisplay">[□□□□□□□□□□]</div>
+            </div>
+          </section>
+
+          <!-- 脱水处理结果 Specimen 卡片区 -->
+          <section class="result-card-container">
+            <div class="specimen-card" id="specimenCard">
+              <div class="specimen-header">
+                <div class="specimen-title">
+                  <span>◈ DEHYDRATED_SPECIMEN [思绪脱水标本]</span>
+                </div>
+                <div class="specimen-badges">
+                  <span class="chip-badge" id="badgeSource">来源: 本地规则</span>
+                  <span class="chip-badge highlight" id="badgeRate">脱水率: --%</span>
+                  <span class="chip-badge sound" id="badgeAcoustic" title="Web Audio 泛音和弦哈希印记">声学印记: 待生成</span>
+                </div>
+              </div>
+
+              <!-- 三段式核心骨架 -->
+              <div class="segment-grid" id="segmentGrid">
+                <!-- 1. 核心实体与动作 (<= 20 字) -->
+                <div class="segment-item">
+                  <div class="segment-header">
+                    <div class="segment-label">
+                      <span>[01]</span> 【核心实体与动作】
+                    </div>
+                    <div class="segment-limit" id="limitEntity">0 / 20 字</div>
+                  </div>
+                  <div class="segment-content" id="valEntity">
+                    等待脱水输入...
+                  </div>
+                </div>
+
+                <!-- 2. 潜在矛盾/关键卡点 (<= 20 字) -->
+                <div class="segment-item">
+                  <div class="segment-header">
+                    <div class="segment-label">
+                      <span>[02]</span> 【潜在矛盾/关键卡点】
+                    </div>
+                    <div class="segment-limit" id="limitConflict">0 / 20 字</div>
+                  </div>
+                  <div class="segment-content" id="valConflict">
+                    等待脱水输入...
+                  </div>
+                </div>
+
+                <!-- 3. 下一步动作 (<= 15 字) -->
+                <div class="segment-item">
+                  <div class="segment-header">
+                    <div class="segment-label">
+                      <span>[03]</span> 【下一步动作】
+                    </div>
+                    <div class="segment-limit" id="limitAction">0 / 15 字</div>
+                  </div>
+                  <div class="segment-content" id="valAction">
+                    等待脱水输入...
+                  </div>
+                </div>
+              </div>
+
+              <!-- 卡片操作与导出 -->
+              <div class="specimen-footer">
+                <div class="specimen-actions">
+                  <button class="next-button" id="btnCopyMarkdown" disabled>
+                    <span>📋</span> 复制为 Markdown
+                  </button>
+                  <button class="next-button" id="btnSaveToShelf" disabled>
+                    <span>💾</span> 存入历史抽屉
+                  </button>
+                </div>
+                <div class="specimen-meta" id="specimenMeta">
+                  原始: 0 字 → 脱水后: 0 字
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- 浮动卡片抽屉 (Floating Card Shelf) -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <aside class="drawer-window next-window" id="drawerWindow">
+      <header class="next-titlebar">
+        <div class="next-title-left">
+          <button class="next-win-btn" id="btnCloseDrawer">✕</button>
+          <div class="next-title-text">
+            <span>📁</span> 卡片历史抽屉 (Card Shelf)
+          </div>
+        </div>
+        <div>
+          <button class="next-mini-btn" id="btnClearAllHistory">清空全部</button>
+        </div>
+      </header>
+      <div class="drawer-body" id="drawerList">
+        <div class="drawer-empty-msg">暂无保存的脱水卡片。在主界面点击“存入历史抽屉”即可持久化归档。</div>
+      </div>
+    </aside>
+
+    <!-- NeXTSTEP API Inspector 设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-window next-window">
+        <header class="next-titlebar">
+          <div class="next-title-left">
+            <button class="next-win-btn" id="btnCloseSettings">✕</button>
+            <div class="next-title-text">
+              <span>⚙</span> 系统偏好 - API 与模型配置
+            </div>
+          </div>
+        </header>
+        <div class="next-window-content">
+          <div class="form-group">
+            <label class="form-label" for="selectProvider">推理引擎供应商 (Provider):</label>
+            <select class="form-select" id="selectProvider">
+              <option value="local">本地智能规则引擎 (无需 Key，纯离线)</option>
+              <option value="gemini">Google Gemini (Gemini 1.5 / 2.0 Flash)</option>
+              <option value="deepseek">DeepSeek (deepseek-chat)</option>
+              <option value="kimi">Moonshot Kimi (moonshot-v1-8k)</option>
+              <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
+            </select>
+            <div class="form-help">注：选用本地规则引擎时，完全在浏览器本地执行分词与特征压缩，零网络请求。</div>
+          </div>
+
+          <div class="form-group" id="groupApiKey">
+            <label class="form-label" for="inputApiKey">API Key:</label>
+            <input type="password" class="form-input" id="inputApiKey" placeholder="在此粘贴您的 API Key (安全保存在 LocalStorage)" />
+          </div>
+
+          <div class="form-group" id="groupBaseUrl">
+            <label class="form-label" for="inputBaseUrl">自定义 API Base URL (选填):</label>
+            <input type="text" class="form-input" id="inputBaseUrl" placeholder="如需反代或私有网关可自定义，留空使用官方默认" />
+          </div>
+
+          <div class="form-group" id="groupModelName">
+            <label class="form-label" for="inputModelName">自定义模型名称 (选填):</label>
+            <input type="text" class="form-input" id="inputModelName" placeholder="例如 gemini-1.5-flash 或 deepseek-chat" />
+          </div>
+
+          <div class="modal-actions">
+            <button class="next-button" id="btnCancelSettings">取消</button>
+            <button class="next-button primary" id="btnSaveSettings">保存配置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 浮动状态 Toast 提示 -->
+    <div class="toast-msg" id="toastMsg">通知信息</div>
+
+  </body>
+</html>
